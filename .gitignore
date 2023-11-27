@@ -1,0 +1,10 @@
+# Ignore Node.js related files and folders in the React project
+dog-pics/node_modules/
+dog-pics/.env
+dog-pics/build/
+dog-pics/.eslintcache
+
+# Ignore Golang-related files and folders in the Golang server
+server/.idea/
+server/.vscode/
+server/*.log
