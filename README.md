@@ -10,8 +10,6 @@ Password: mamoa
 Start the server by running:
 go run server/main.go
 
-run the following
-
 Start front-end (react project) by running:
 npm start --prefix dog-pics
 
