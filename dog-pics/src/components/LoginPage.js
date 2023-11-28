@@ -35,6 +35,7 @@ function LoginPage(){
     })
     .then(async resp => {
       const data = await resp.json()
+      
       if(data.authenticated){
         setAuthenticated(true)
       }
@@ -64,7 +65,7 @@ function LoginPage(){
               setUsername(e.target.value)
               setInvalidLogin(false)
             }} />
-            <InputLabel $invalid={passwordInvalid} htmlFor="password">{"Password: "}</InputLabel>
+            <InputLabel htmlFor="password">{"Password: "}</InputLabel>
             <Input id="password" type="text" value={password} onChange={(e) => {
                 setPassword(e.target.value)
                 setPasswordInvalid(false)

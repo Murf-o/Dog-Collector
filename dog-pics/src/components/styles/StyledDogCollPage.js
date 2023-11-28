@@ -13,4 +13,5 @@ justify-content: center;
 align-items: center;
 background-color: ${props => props.$color};
 overflow-y: scroll;
+margin-top: 50px;
 `

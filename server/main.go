@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"net/http"
 	"context"
 	"fmt"
@@ -32,25 +33,24 @@ const database string = "DogCollector"
 const loginCol string = "Logins"
 const userDogCol string = "User-Dogs"
 
+var rwMutex sync.RWMutex
 
 func addLogin(client *mongo.Client, c *gin.Context){
 	var newLogin accountLogin
 
 	if err := c.BindJSON(&newLogin); err != nil{
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err})
+		fmt.Println(err)
 		return
 	}
 	coll := client.Database(database).Collection(loginCol)
-
+	rwMutex.Lock()
 	result, err := coll.InsertOne(context.Background(), newLogin)
+	rwMutex.Unlock()
 	if err != nil{
 		fmt.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err})
 		return
 	}
-	
-	//response
-	c.IndentedJSON(http.StatusOK, result.InsertedID)
+	fmt.Println(result)
 }
 
 func authenticate(client *mongo.Client, c *gin.Context){
@@ -62,7 +62,9 @@ func authenticate(client *mongo.Client, c *gin.Context){
 
 	coll := client.Database(database).Collection(loginCol)
 	var result accountLogin
+	rwMutex.RLock()
 	err := coll.FindOne(context.Background(), query).Decode(&result)
+	rwMutex.RUnlock()
 	if err != nil{
 		c.IndentedJSON(http.StatusOK, gin.H{"authenticated": false})
 		return
@@ -76,21 +78,20 @@ func addDog(client *mongo.Client, c *gin.Context){
 	var query userDog
 
 	if err := c.BindJSON(&query); err != nil{
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		fmt.Println(err)
     return
 	}
 
 	coll := client.Database(database).Collection(userDogCol)
-
+	rwMutex.Lock()
 	result, err := coll.InsertOne(context.Background(), query)
+	rwMutex.Unlock()
 	//Error adding dog
 	if err != nil{
 		fmt.Println(err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err})
 		return
 	}
-
-	c.IndentedJSON(http.StatusOK, result)
+	fmt.Println(result)
 }
 
 func getDogs(user string, client *mongo.Client, c *gin.Context){
@@ -98,7 +99,9 @@ func getDogs(user string, client *mongo.Client, c *gin.Context){
 	coll := client.Database(database).Collection(userDogCol)
 	filter := bson.M{"username": user}
 	log.Println(filter)
+	rwMutex.RLock()
 	cursor, err := coll.Find(context.Background(), filter)
+	rwMutex.RUnlock()
 	if err != nil{
 		c.IndentedJSON(http.StatusOK, gin.H{"authenticated": false})
 		return
@@ -137,14 +140,17 @@ func main() {
 	router := gin.Default()
 	router.Use(cors.Default())
 	router.POST("/add-login", func(c *gin.Context){
-		addLogin(client, c)
+		go addLogin(client, c)
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "processing"})
+		
 	})
 	router.POST("/authenticate", func(c *gin.Context){
 		authenticate(client, c)
 	})
 
 	router.POST("/add-dog", func(c * gin.Context){
-		addDog(client, c)
+		go addDog(client, c)
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "processing"})
 	})
 
 	router.GET("/get-dogs/:username", func(c *gin.Context){
